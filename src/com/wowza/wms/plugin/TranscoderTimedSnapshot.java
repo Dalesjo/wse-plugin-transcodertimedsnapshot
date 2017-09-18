@@ -51,7 +51,11 @@ public class TranscoderTimedSnapshot extends ModuleBase
 			if (image != null)
 			{
 				long time = System.currentTimeMillis() / 1000;
-	
+				
+				if(ModulusTime) {
+					time = time - (time % (sleepTime/1000));
+				}
+
 				String storageDir = appInstance.getStreamStoragePath();
 	
 				File file = new File(storageDir, imagePrefix + streamName + (timestampImages ? "_" + time : "") + "." + format);
@@ -76,54 +80,54 @@ public class TranscoderTimedSnapshot extends ModuleBase
 	 *
 	 */
 	class SnapshotWorker extends Thread
-		{
-			private boolean running = true;
-			private boolean quit = false;
-			private final String streamName;
-	
-			SnapshotWorker(String streamName)
-			{
-				super("Transcoder Snapshot Worker ["+ appInstance.getContextStr() + "/" + streamName + "]");
-				this.streamName = streamName;
-			}
-	
-			synchronized boolean running()
-			{
-				return this.running;
-			}
-	
-			synchronized void quit()
-			{
-				this.quit = true;
-				notify();
-			}
-	
-			public void run()
-			{
-				logger.info(this.getName() + " started.");
-				while (true)
-				{
-					synchronized(this)
-					{
-						if (this.quit)
-						{
-							this.running = false;
-							break;
-						}
-					}
+	{
+		private boolean running = true;
+		private boolean quit = false;
+		private final String streamName;
 
-					takeSnapshot(this.streamName);
-					
-					try
+		SnapshotWorker(String streamName)
+		{
+			super("Transcoder Snapshot Worker ["+ appInstance.getContextStr() + "/" + streamName + "]");
+			this.streamName = streamName;
+		}
+
+		synchronized boolean running()
+		{
+			return this.running;
+		}
+
+		synchronized void quit()
+		{
+			this.quit = true;
+			notify();
+		}
+
+		public void run()
+		{
+			logger.info(this.getName() + " started.");
+			while (true)
+			{
+				synchronized(this)
+				{
+					if (this.quit)
 					{
-						Thread.sleep(sleepTime);
+						this.running = false;
+						break;
 					}
-					catch (InterruptedException ie)
-					{
-					}
+				}
+
+				takeSnapshot(this.streamName);
+				
+				try
+				{
+					Thread.sleep(sleepTime);
+				}
+				catch (InterruptedException ie)
+				{
 				}
 			}
 		}
+	}
 	
 	public static final String MODULE_NAME = "ModuleTranscoderTimedSnapshot";
 	public static final String PROP_NAME_PREFIX = "transcoderTimedSnapshot";
@@ -144,6 +148,9 @@ public class TranscoderTimedSnapshot extends ModuleBase
 	// Create images with timestamp in name. If false then a single image is overwritten.
 	private boolean timestampImages = true;
 	
+	// If true the timestamp is rounded down with modulus sleepTime.
+	private boolean ModulusTime = false;
+	
 	private WMSLogger logger = null;
 	private IApplicationInstance appInstance = null;
 
@@ -163,6 +170,8 @@ public class TranscoderTimedSnapshot extends ModuleBase
 		this.imagePrefix = props.getPropertyStr(PROP_NAME_PREFIX + "ImagePrefix", this.imagePrefix);
 		this.format = props.getPropertyStr(PROP_NAME_PREFIX + "Format", this.format).toLowerCase();
 		this.timestampImages = props.getPropertyBoolean(PROP_NAME_PREFIX + "TimestampImages", this.timestampImages);
+
+		this.ModulusTime = props.getPropertyBoolean(PROP_NAME_PREFIX + "ModulusTime", this.ModulusTime);
 		
 		if (this.sleepTime < 1000)
 		{
