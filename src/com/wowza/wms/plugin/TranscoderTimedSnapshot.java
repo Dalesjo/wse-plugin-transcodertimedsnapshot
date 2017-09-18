@@ -56,9 +56,9 @@ public class TranscoderTimedSnapshot extends ModuleBase
 					time = time - (time % (sleepTime/1000));
 				}
 
-				String storageDir = appInstance.getStreamStoragePath();
+				// String storageDir = appInstance.getStreamStoragePath();
 	
-				File file = new File(storageDir, imagePrefix + streamName + (timestampImages ? "_" + time : "") + "." + format);
+				File file = new File(timestampDir, imagePrefix + streamName + (timestampImages ? "_" + time : "") + "." + format);
 	
 				try
 				{
@@ -151,6 +151,9 @@ public class TranscoderTimedSnapshot extends ModuleBase
 	// If true the timestamp is rounded down with modulus sleepTime.
 	private boolean ModulusTime = false;
 	
+	// directory images should be saved to.
+	private String timestampDir = null;
+	
 	private WMSLogger logger = null;
 	private IApplicationInstance appInstance = null;
 
@@ -172,6 +175,8 @@ public class TranscoderTimedSnapshot extends ModuleBase
 		this.timestampImages = props.getPropertyBoolean(PROP_NAME_PREFIX + "TimestampImages", this.timestampImages);
 
 		this.ModulusTime = props.getPropertyBoolean(PROP_NAME_PREFIX + "ModulusTime", this.ModulusTime);
+		this.timestampDir = this.appInstance.getStreamStoragePath();
+		this.timestampDir = props.getPropertyStr(PROP_NAME_PREFIX + "Dir", this.timestampDir);
 		
 		if (this.sleepTime < 1000)
 		{
